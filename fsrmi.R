@@ -39,8 +39,6 @@ n3 = length(r1n20c3$Result)    # valid responses count
 k3 = sum(r1n20c3$Result == 1) 
 prop.test(k3, n3) 
 
-
-
 ##########subset 4
 r1n50c1<-subset(dat,Reviewer==1&Type==50&Criterion==1)
 
