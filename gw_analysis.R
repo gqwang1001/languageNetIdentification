@@ -141,10 +141,10 @@ AIC(fig.lg)
 dat.loglinear = dat.logit %>% 
   spread(Reviewer, Result)
 
+
 # model for logit regression with confidence rating -----------------------
 
-dat.cr = dat.logit %>% 
-  filter(Criterion == 'Top1')
+dat.cr = dat.logit
 dat.ratings = readxl::read_xlsx('data/Master.xlsx', sheet = 1)[1:43, ]
 dat.ratings = dat.ratings[, c(1, 5, 7, 9, 11, 13, 15)]
 colnames(dat.ratings) = c('subject', paste0(rep(c('R1_', 'R2_', 'R3_'), each =2), rep(c('ICA20', 'ICA50'), 3)))
@@ -162,7 +162,6 @@ dat.ratings.long$Type= types
 
 dat.cr = left_join(dat.cr, dat.ratings.long, by = c("subject", "Reviewer", "Type"))
 
-
 ri.fit.cr = glmer(data = dat.cr, Result ~ (1|subject) + Reviewer + confRate, family = binomial)
 summary(ri.fit.cr)
 
@@ -170,6 +169,32 @@ library(survival)
 fit.cr.clogit = clogit(data = dat.cr, Result ~ Reviewer + confRate + strata(subject))
 summary(fit.cr.clogit)
 
+
+# logit regression for location of lesion ---------------------------------
+
+dat.location = readxl::read_xlsx('data/Master2.xlsx', sheet = 3)
+dat.location$Broca = ifelse(dat.location$`IFG L`=="Y"|dat.location$`IFG R`=="Y", 1, 0)
+dat.location$Wernicke = ifelse(dat.location$`Posterior temporal L`=="Y"|dat.location$`posterior temporal R`=="Y", 1, 0)
+
+dat.long = dat.ratings.long
+dat.long$Broca = rep(dat.location$Broca, 3)
+dat.long$Wernicke = rep(dat.location$Wernicke, 3)
+
+dat.location.all = left_join(dat.cr, dat.long, by = c("subject", "Reviewer", "Type", "methods", "confRate", "Type"))
+
+dat.location.all = dat.location.all[!is.na(dat.location.all$confRate),]
+
+
+ri.fit.location = glmer(data = dat.location.all, Result ~ (1|subject) + Reviewer + Criterion + confRate + Broca+Wernicke, family = binomial)
+summary(ri.fit.location)
+
+ri.fit.location.1 = glmer(data = dat.location.all, Result ~ (1|subject) + Reviewer+Criterion + confRate + Broca+Wernicke, family = binomial)
+summary(ri.fit.location.1)
+
+ri.fit.location.2 = glmer(data = dat.location.all, Result ~ (1|subject) + Reviewer+Criterion, family = binomial)
+summary(ri.fit.location.2)
+
+lmtest::lrtest(ri.fit.location, ri.fit.location.2)
 
 # plot ROC ----------------------------------------------------------------
 library(caret)
